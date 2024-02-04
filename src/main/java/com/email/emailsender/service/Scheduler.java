@@ -11,11 +11,18 @@ public class Scheduler {
     public static void scheduler(Customer customer, EmailSentCallback callback) {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-        // Schedule the task to run every minute
+
         int initialDelay = 0;
-        int period = 10;
+        int periodA = 30;
+        // Schedule to update status of customer for db simulation every 30 seconds
+        scheduler.scheduleAtFixedRate(customer::updateStatusFromDatabase, initialDelay, periodA, TimeUnit.SECONDS);
+
+        // Schedule to check if threshold reached or status changed to send specified email
+        int periodB = 10;
         scheduler.scheduleAtFixedRate(() -> {
-            if (customer.shouldSendEmail()) {
+            //System.out.println("CURRENT: " + System.currentTimeMillis());
+            //System.out.println(customer.getEmail() + " " + customer.isStatus() + " " + customer.getThreshold());
+            if (customer.shouldSendLoadedEmail() || customer.shouldSendEmail()) {
                 boolean emailSent = false;
                 try {
                     emailSent = NotificationService.sendEmail(customer);
@@ -27,11 +34,20 @@ public class Scheduler {
                     callback.onEmailSent(customer.getEmail());
                 }
             }
-        }, initialDelay, period, TimeUnit.SECONDS);
+        }, initialDelay, periodB, TimeUnit.SECONDS);
     }
 
     // Callback interface for email sent notification
     public interface EmailSentCallback {
         void onEmailSent(String emailAddress);
+    }
+
+
+    public boolean changeStatusTimeCheck(Customer customer, Long minutesBefore){
+        long currentTime = System.currentTimeMillis();
+        Long minutesBeforeThreshold = customer.getThreshold() - TimeUnit.MINUTES.toMillis(minutesBefore);
+        Long minutesAfterChange = minutesBeforeThreshold + TimeUnit.MINUTES.toMillis(1);
+
+        return currentTime >= minutesBeforeThreshold && currentTime <= minutesAfterChange;
     }
 }

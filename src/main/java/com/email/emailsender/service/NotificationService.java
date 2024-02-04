@@ -42,7 +42,12 @@ public class NotificationService {
             message.setFrom(new InternetAddress(username));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(customer.getEmail()));
             message.setSubject("Notification:Ramp Status Update");
-            message.setText("Dear Customer,\n\nYour shipment is not yet loaded, and the threshold has been reached.");
+            if (customer.shouldSendLoadedEmail()){
+                message.setText("Dear Customer,\n\nYour shipment has been loaded to the aircraft");
+            }
+            else {
+                message.setText("Dear Customer,\n\nYour shipment is not yet loaded, and the threshold has been reached.");
+            }
 
             // Send the email
             Transport.send(message);
